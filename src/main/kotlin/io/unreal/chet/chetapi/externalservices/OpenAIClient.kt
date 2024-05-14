@@ -45,7 +45,7 @@ class OpenAIClient {
             )
         )
 
-        return openAI.chatCompletion(chatCompletionRequest).choices.get(0).message.content.toString()
+        return openAI.chatCompletion(chatCompletionRequest).choices[0].message.content.toString()
     }
 
     suspend fun getImage(prompt: String): List<ImageURL> {

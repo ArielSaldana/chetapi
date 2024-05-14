@@ -51,12 +51,18 @@ class PromptService(
                     mono {
                         val client = OpenAIClient()
                         try {
-                            val chatResponse = client.getChat(promptRequest.prompt)
-                            savePrompt(promptRequest, false).awaitSingle()
-                            chatResponse
+                            if (promptRequest.isImage) {
+                                val chatResponse = client.getImage(promptRequest.prompt)[0].url
+                                savePrompt(promptRequest, promptRequest.isImage).awaitSingle()
+                                chatResponse
+                            } else {
+                                val chatResponse = client.getChat(promptRequest.prompt)
+                                savePrompt(promptRequest, promptRequest.isImage).awaitSingle()
+                                chatResponse
+                            }
                         } catch (e: Exception) {
-                            savePrompt(promptRequest, false).awaitSingle()
-                            throw e
+                            savePrompt(promptRequest, promptRequest.isImage).awaitSingle()
+                            Mono.error<String>(RuntimeException("Failed generating prompt")).awaitSingle()
                         }
                     }
                 } else {

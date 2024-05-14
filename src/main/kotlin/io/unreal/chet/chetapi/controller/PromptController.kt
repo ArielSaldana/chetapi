@@ -21,7 +21,6 @@ class PromptController(
 
     @PostMapping("/chat")
     suspend fun getChatPrompt(@RequestBody request: PromptRequest): Mono<ResponseEntity<HttpResponse>> {
-        println("Received request: $request")
         return promptService.processPrompt(request)
             .map { result ->
                 val response = HttpResponse(
@@ -35,7 +34,16 @@ class PromptController(
     }
 
     @PostMapping("/image")
-    fun getImgPrompt(@RequestBody request: PromptRequest) {
-
+    suspend fun getImgPrompt(@RequestBody request: PromptRequest): Mono<ResponseEntity<HttpResponse>> {
+        return promptService.processPrompt(request)
+            .map { result ->
+                val response = HttpResponse(
+                    error = null, success = SimpleStringResponseEntity(result)
+                )
+                ResponseEntity.ok(response)
+            }
+            .onErrorResume { error ->
+                Mono.just(ResponseEntity.status(400).body(HttpResponse(error = error.message, success = null)))
+            }
     }
 }
