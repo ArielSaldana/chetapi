@@ -9,5 +9,4 @@ class ChetapiApplicationTests {
 	@Test
 	fun contextLoads() {
 	}
-
 }
