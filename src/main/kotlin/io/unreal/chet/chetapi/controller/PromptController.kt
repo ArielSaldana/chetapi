@@ -19,22 +19,8 @@ class PromptController(
     private val promptService: PromptService
 ) {
 
-    @PostMapping("/chat")
+    @PostMapping("/text")
     suspend fun getChatPrompt(@RequestBody request: PromptRequest): Mono<ResponseEntity<HttpResponse>> {
-        return promptService.processPrompt(request)
-            .map { result ->
-                val response = HttpResponse(
-                    error = null, success = SimpleStringResponseEntity(result)
-                )
-                ResponseEntity.ok(response)
-            }
-            .onErrorResume { error ->
-                Mono.just(ResponseEntity.status(400).body(HttpResponse(error = error.message, success = null)))
-            }
-    }
-
-    @PostMapping("/image")
-    suspend fun getImgPrompt(@RequestBody request: PromptRequest): Mono<ResponseEntity<HttpResponse>> {
         return promptService.processPrompt(request)
             .map { result ->
                 val response = HttpResponse(
