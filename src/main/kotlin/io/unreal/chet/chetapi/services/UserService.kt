@@ -1,6 +1,5 @@
 package io.unreal.chet.chetapi.services
 
-import io.unreal.chet.chetapi.error.TelegramIDEmptyError
 import io.unreal.chet.chetapi.error.UserExistsError
 import io.unreal.chet.chetapi.objects.CreateUserRequest
 import io.unreal.chet.chetapi.repository.User

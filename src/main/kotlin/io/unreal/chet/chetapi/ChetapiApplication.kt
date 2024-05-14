@@ -7,5 +7,5 @@ import org.springframework.boot.runApplication
 class ChetapiApplication
 
 fun main(args: Array<String>) {
-	runApplication<ChetapiApplication>(*args)
+    runApplication<ChetapiApplication>(*args)
 }

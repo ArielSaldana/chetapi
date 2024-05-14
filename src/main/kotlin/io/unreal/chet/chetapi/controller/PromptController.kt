@@ -34,31 +34,6 @@ class PromptController(
             }
     }
 
-//    @PostMapping("/chat")
-//    suspend fun getChatPrompt(@RequestBody request: PromptRequest): Mono<ResponseEntity<HttpResponse>> {
-//
-//        return promptService.processPrompt(request)
-//            .flatMap { result ->
-//                if (result) {
-//                    Mono.just(ResponseEntity.ok(HttpResponse(message = "Success")))
-//                } else {
-//                    Mono.just(ResponseEntity.status(400).body(HttpResponse(message = "Error")))
-//                }
-//            }
-//        return Mono.just(ResponseEntity.ok(HttpResponse(message = "Success")))
-//        return userByTelegramIdRepository.findUserByTelegramId(request.telegramId)
-//            .switchIfEmpty(Mono.error(RuntimeException("User does not exist")))
-//            .flatMap { user ->
-//                // Perform additional work with the user here
-//                val result = performAdditionalWork(user) // Replace with your actual work
-//
-//                Mono.just(ResponseEntity.ok(HttpResponse(message = "Success", data = result)))
-//            }
-//            .onErrorResume { error ->
-//                Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(HttpResponse(message = error.message)))
-//            }
-//    }
-
     @PostMapping("/image")
     fun getImgPrompt(@RequestBody request: PromptRequest) {
 

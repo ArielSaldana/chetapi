@@ -1,15 +1,12 @@
 package io.unreal.chet.chetapi.services
 
-import io.unreal.chet.chetapi.error.UserExistsError
 import io.unreal.chet.chetapi.error.UserNotFoundError
 import io.unreal.chet.chetapi.externalservices.OpenAIClient
 import io.unreal.chet.chetapi.objects.PromptRequest
-import io.unreal.chet.chetapi.repository.Prompt
 import io.unreal.chet.chetapi.repository.PromptRepository
 import io.unreal.chet.chetapi.repository.UserByTelegramIdRepository
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.mono
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.Instant
@@ -37,53 +34,6 @@ class PromptService(
                     }
             }
     }
-
-//    fun savePrompt(promptRequest: PromptRequest, isImage: Boolean): Mono<Boolean> {
-//        return userService.getUserUidWithTelegramId(promptRequest.telegramId)
-//            .switchIfEmpty(Mono.error(UserNotFoundError("User does not exist")))
-//            .flatMap { user ->
-//                val currentDate = Date()
-//                val prompt = Prompt(
-//                    UUID.randomUUID(),
-//                    user,
-//                    promptRequest.prompt,
-//                    isImage,
-//                    currentDate,
-//                    currentDate
-//                )
-//                promptRepository.save(prompt)
-//                    .flatMap { savedPrompt ->
-//                        performAdditionalWork()
-//                    }
-//            }
-//    }
-
-//    fun savePrompt(promptRequest: PromptRequest, isImage: Boolean): Mono<Boolean> {
-//        return userService.getUserUidWithTelegramId(promptRequest.telegramId)
-//            .switchIfEmpty(Mono.error(UserNotFoundError("User does not exist")))
-//            .flatMap { user ->
-//                val currentDate = Date()
-//                val prompt = Prompt(
-//                    UUID.randomUUID(),
-//                    user,
-//                    promptRequest.prompt,
-//                    isImage,
-//                    currentDate,
-//                    currentDate
-//                )
-//                promptRepository.save(prompt)
-//                    .onErrorResume { ex ->
-//                        if (ex is DataIntegrityViolationException) {
-//                            println("ERROR happENED")
-//                            Mono.error(UserExistsError("User with given key already exists"))
-//                        } else {
-//                            println("ERROR happENED")
-//                            Mono.error(ex)
-//                        }
-//                    }
-//                    .thenReturn(true)
-//            }
-//    }
 
     fun savePrompt(promptRequest: PromptRequest, isImage: Boolean): Mono<Boolean> {
         return userService.getUserUidWithTelegramId(promptRequest.telegramId)

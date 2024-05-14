@@ -13,7 +13,7 @@ import java.util.Date
 import java.util.UUID
 
 @Table("prompt")
-data class Prompt (
+data class Prompt(
     @PrimaryKeyColumn(name = "id", ordinal = 0, type = PrimaryKeyType.PARTITIONED)
     val id: UUID,
     @PrimaryKeyColumn(name = "userid", ordinal = 0, type = PrimaryKeyType.CLUSTERED)
