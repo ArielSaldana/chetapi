@@ -5,6 +5,8 @@ plugins {
     id("io.spring.dependency-management") version "1.1.4"
     kotlin("jvm") version "1.9.23"
     kotlin("plugin.spring") version "1.9.23"
+    id("com.google.devtools.ksp") version "1.9.23-1.0.20"
+//    id("com.google.devtools.ksp") version "1.9.24-1.0.20"
 }
 
 group = "io.unreal.chet"
@@ -53,6 +55,10 @@ dependencies {
     // define any required OkHttp artifacts without version
 //    implementation("com.squareup.okhttp3:okhttp")
 //    implementation("com.squareup.okhttp3:logging-interceptor")
+
+    implementation("eu.vendeli:telegram-bot:5.4.0")
+    ksp("eu.vendeli:ksp:5.4.0")
+    implementation("eu.vendeli:spring-ktgram-starter:5.4.0")
 }
 
 tasks.withType<KotlinCompile> {

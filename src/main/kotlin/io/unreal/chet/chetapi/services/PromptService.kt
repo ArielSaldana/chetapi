@@ -19,14 +19,14 @@ class PromptService(
     private val promptRepository: PromptRepository
 ) {
 
-    fun shouldUserHaveAccess(promptRequest: PromptRequest): Mono<Boolean> {
+    fun shouldUserHaveAccess(promptRequest: PromptRequest, numerOfRequests: Int): Mono<Boolean> {
         return userService.getUserUidWithTelegramId(promptRequest.telegramId)
             .switchIfEmpty(Mono.error(UserNotFoundError("User does not exist")))
             .flatMap { user ->
                 val date24HoursAgo = Date.from(Instant.now().minusSeconds(24 * 60 * 60))
                 promptRepository.getNumberOfPromptsLast24hByUserId(user, date24HoursAgo)
                     .flatMap { numberOfPrompts ->
-                        if (numberOfPrompts.toInt() >= 5) {
+                        if (numberOfPrompts.toInt() >= numerOfRequests) {
                             Mono.just(false)
                         } else {
                             Mono.just(true)
@@ -44,8 +44,8 @@ class PromptService(
             }
     }
 
-    suspend fun processPrompt(promptRequest: PromptRequest): Mono<String> {
-        return shouldUserHaveAccess(promptRequest)
+    suspend fun processPrompt(promptRequest: PromptRequest, numberOfRequests: Int): Mono<String> {
+        return shouldUserHaveAccess(promptRequest, numberOfRequests)
             .flatMap { shouldHaveAccess ->
                 if (shouldHaveAccess) {
                     mono {

@@ -21,7 +21,7 @@ class PromptController(
 
     @PostMapping("/text")
     suspend fun getChatPrompt(@RequestBody request: PromptRequest): Mono<ResponseEntity<HttpResponse>> {
-        return promptService.processPrompt(request)
+        return promptService.processPrompt(request, 5)
             .map { result ->
                 val response = HttpResponse(
                     error = null, success = SimpleStringResponseEntity(result)
