@@ -60,6 +60,8 @@ class ChetChatController(val promptService: PromptService) {
             .replace("!", "\\!")
             .replace("-", "\\-")
             .replace("|", "\\|")
+            .replace("(", "\\(")
+            .replace(")", "\\)")
 
         val messageFooter =
             "\uD83D\uDCAC [Telegram](https://t.me/chetverify) \uD83D\uDCC8 [Dexscreener](https://dexscreener.com/solana/hdkb6ksckptssrutdnddtuqkx1pg2teocr2v67qm9gqt)"
