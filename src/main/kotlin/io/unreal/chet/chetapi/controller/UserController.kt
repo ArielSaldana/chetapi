@@ -16,7 +16,7 @@ class UserController(val userService: UserService) {
 
     @PostMapping("/create")
     fun createUser(@RequestBody request: CreateUserRequest): Mono<ResponseEntity<HttpResponse>> {
-        return userService.createUserInBothTables(request)
+        return userService.createUser(request)
             .then(Mono.fromCallable {
                 val response = HttpResponse(error = null, success = SimpleStringResponseEntity("User created"))
                 ResponseEntity.ok(response)

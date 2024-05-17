@@ -1,7 +1,7 @@
 package io.unreal.chet.chetapi.services
 
-import io.unreal.chet.chetapi.repository.QueryCost
-import io.unreal.chet.chetapi.repository.QueryCostRepository
+import io.unreal.chet.chetapi.repository.mongo.QueryCost
+import io.unreal.chet.chetapi.repository.mongo.QueryCostRepository
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
@@ -27,19 +27,19 @@ class QueryCostService(private val queryCostRepository: QueryCostRepository) {
                 queryId = 0,
                 queryName = "chat-3.5",
                 queryDescription = "OpenAI chat API version 3.5",
-                cost = 1
+                creditCost = 1
             ),
             QueryCost(
                 queryId = 1,
                 queryName = "chat-4.0",
                 queryDescription = "OpenAI chat API version 4.0",
-                cost = 2
+                creditCost = 5
             ),
             QueryCost(
                 queryId = 2,
                 queryName = "dall-e-3",
                 queryDescription = "OpenAI DALL-E version 3",
-                cost = 10
+                creditCost = 10
             ),
         )
 

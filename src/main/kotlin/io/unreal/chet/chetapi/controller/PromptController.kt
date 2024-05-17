@@ -3,7 +3,7 @@ package io.unreal.chet.chetapi.controller
 import io.unreal.chet.chetapi.objects.HttpResponse
 import io.unreal.chet.chetapi.objects.PromptRequest
 import io.unreal.chet.chetapi.objects.SimpleStringResponseEntity
-import io.unreal.chet.chetapi.repository.UserByTelegramIdRepository
+import io.unreal.chet.chetapi.repository.mongo.UserRepository
 import io.unreal.chet.chetapi.services.PromptService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -15,7 +15,8 @@ import reactor.core.publisher.Mono
 @RestController
 @RequestMapping("/prompt")
 class PromptController(
-    val userByTelegramIdRepository: UserByTelegramIdRepository,
+    val userRepository: UserRepository,
+//    val userByTelegramIdRepository: UserByTelegramIdRepository,
     private val promptService: PromptService
 ) {
 

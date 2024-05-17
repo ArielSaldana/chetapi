@@ -3,8 +3,9 @@ package io.unreal.chet.chetapi.services
 import io.unreal.chet.chetapi.error.UserNotFoundError
 import io.unreal.chet.chetapi.externalservices.OpenAIClient
 import io.unreal.chet.chetapi.objects.PromptRequest
-import io.unreal.chet.chetapi.repository.PromptRepository
-import io.unreal.chet.chetapi.repository.UserByTelegramIdRepository
+import io.unreal.chet.chetapi.repository.mongo.Prompt
+import io.unreal.chet.chetapi.repository.mongo.PromptRepository
+import io.unreal.chet.chetapi.repository.mongo.UserRepository
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.mono
 import org.springframework.stereotype.Service
@@ -15,13 +16,13 @@ import java.util.*
 @Service
 class PromptService(
     private val userService: UserService,
-    private val userByTelegramIdRepository: UserByTelegramIdRepository,
+    private val userRepository: UserRepository,
     private val promptRepository: PromptRepository
 ) {
 
     fun shouldUserHaveAccess(promptRequest: PromptRequest, numerOfRequests: Int): Mono<Boolean> {
         return userService.getUserUidWithTelegramId(promptRequest.telegramId)
-            .switchIfEmpty(Mono.error(UserNotFoundError("User does not exist")))
+            .switchIfEmpty(Mono.error(UserNotFoundError()))
             .flatMap { user ->
                 val date24HoursAgo = Date.from(Instant.now().minusSeconds(24 * 60 * 60))
                 promptRepository.getNumberOfPromptsLast24hByUserId(user, date24HoursAgo)
@@ -36,11 +37,15 @@ class PromptService(
     }
 
     fun savePrompt(promptRequest: PromptRequest, isImage: Boolean): Mono<Boolean> {
-        return userService.getUserUidWithTelegramId(promptRequest.telegramId)
-            .switchIfEmpty(Mono.error(UserNotFoundError("User does not exist")))
+        return userRepository.findByTelegramId(promptRequest.telegramId)
+            .switchIfEmpty(Mono.error(UserNotFoundError()))
             .flatMap { user ->
-                promptRepository.insertPrompt(user, promptRequest.prompt, isImage)
-                    .thenReturn(true)
+                val prompt = Prompt(
+                    userId = user.id,
+                    prompt = promptRequest.prompt,
+                    isImage = isImage
+                )
+                promptRepository.save(prompt).thenReturn(true)
             }
     }
 
