@@ -1,16 +1,9 @@
 package io.unreal.chet.chetapi.controller
 
-import io.unreal.chet.chetapi.objects.HttpResponse
-import io.unreal.chet.chetapi.objects.PromptRequest
-import io.unreal.chet.chetapi.objects.SimpleStringResponseEntity
 import io.unreal.chet.chetapi.repository.mongo.UserRepository
 import io.unreal.chet.chetapi.services.PromptService
-import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import reactor.core.publisher.Mono
 
 @RestController
 @RequestMapping("/prompt")

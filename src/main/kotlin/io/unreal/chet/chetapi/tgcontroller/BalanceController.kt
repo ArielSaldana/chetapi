@@ -23,10 +23,12 @@ class BalanceController(private val userBalanceService: UserBalanceService) {
             .awaitFirstOrNull()
 
         val messageContent = userCreditBalance?.let { String.format(BALANCE_RETRIEVAL_SUCCESS, it) } ?: BALANCE_RETRIEVAL_FAILURE
-        sendMessage(messageUpdate.message.chat.id, bot, messageContent)
+        sendMessage(messageUpdate.message.chat.id, messageUpdate.message.messageId, bot, messageContent)
     }
 
-    private suspend fun sendMessage(telegramChatId: Long, bot: TelegramBot, messageContent: String) {
-        message { messageContent }.send(telegramChatId, bot)
+    private suspend fun sendMessage(telegramChatId: Long, messageId:Long,  bot: TelegramBot, messageContent: String) {
+        message { messageContent }
+            .options { replyParameters(messageId = messageId) }
+            .send(telegramChatId, bot)
     }
 }
