@@ -49,7 +49,7 @@ class ChetImgController(
             sendMessage(bot, messageUpdate, messageContent, request.isImage)
 
             creditService.queryTransaction(
-                messageUpdate.message.chat.id,
+                messageUpdate.user.id,
                 queryCostId = QueryCostId.DALLE3,
                 CHARGE,
                 CHARGE_FOR_DALL3_PROMPT
