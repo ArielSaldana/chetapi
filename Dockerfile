@@ -9,6 +9,7 @@ COPY gradlew .
 COPY gradle gradle
 COPY build.gradle.kts .
 COPY settings.gradle.kts .
+COPY .env .
 COPY src src
 
 # Grant execution permissions to the Gradlew script
