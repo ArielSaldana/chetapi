@@ -12,11 +12,17 @@ class UserRegistrationService(
     private val userService: UserService,
     private val userBalanceService: UserBalanceService
 ) {
+    /**
+     * Register a new user with a specific Telegram ID.
+     * This involves creating a new user in the user table and a corresponding entry in the user balance table.
+     * @param telegramId The Telegram ID of the new user.
+     * @return The UUID of the new user.
+     */
     fun registerUserWithTelegramId(telegramId: Long): Mono<UUID> {
-        return userService.createUserWithTelegramId(telegramId).flatMap {
-            userBalanceService.createUserBalanceDBEntryWithTelegramId(telegramId, balance = 0).flatMap { userBalance ->
-                Mono.just(userBalance.uid)
-            }
+        return userService.createUserWithTelegramId(telegramId).flatMap { userId ->
+            userBalanceService.createUserBalanceDBEntryWithTelegramId(telegramId, balance = 0).map { userId }
+        }.onErrorResume { ex ->
+            Mono.error(RuntimeException("Error occurred while registering user: ${ex.message}", ex))
         }
     }
 }

@@ -14,28 +14,24 @@ class UserBalanceService(
     private val userService: UserService,
     private val userBalanceRepository: UserBalanceRepository) {
 
+    // Create a new user balance entry in the database
     fun createUserBalanceDBEntry(uid: UUID, balance: Int): Mono<UserBalance> {
         return userBalanceRepository.save(UserBalance(uid = uid, creditBalance = balance))
             .onErrorResume { ex: Throwable ->
                 when (ex) {
                     is DuplicateKeyException -> {
                         // Handle duplicate key exception
-                        println("Duplicate key error: ${ex.message}")
                         Mono.error(UserBalanceAlreadyExistsError("User balance entry already exists for user ID: $uid"))
                     }
                     else -> {
                         // Handle other exceptions
-                        println("Error occurred while creating user balance entry: ${ex.message}")
-                        Mono.error(ex)
+                        Mono.error(RuntimeException("Error occurred while creating user balance entry: ${ex.message}", ex))
                     }
                 }
             }
-            .doOnError { ex ->
-                // Log the error
-                println("Error occurred while creating user balance entry: ${ex.message}")
-            }
     }
 
+    // Create a new user balance entry in the database with a specific Telegram ID
     fun createUserBalanceDBEntryWithTelegramId(telegramId: Long, balance: Int): Mono<UserBalance> {
         return userService.getUserUidWithTelegramId(telegramId)
             .flatMap { userUid ->
@@ -43,6 +39,7 @@ class UserBalanceService(
             }
     }
 
+    // Fetch a user's credit balance with a specific Telegram ID from the database
     fun getUserCreditBalance(telegramId: Long): Mono<Int> {
         return userService.getUserUidWithTelegramId(telegramId)
             .flatMap { userUid ->
@@ -53,6 +50,7 @@ class UserBalanceService(
             }.switchIfEmpty(Mono.error(UserBalanceNotFoundError()))
     }
 
+    // Update a user's balance in the database
     fun updateUserBalance(uid: UUID, amount: Int): Mono<UserBalance> {
         return userBalanceRepository.findByUid(uid)
             .flatMap { userBalance ->

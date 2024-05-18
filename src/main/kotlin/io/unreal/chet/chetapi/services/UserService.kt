@@ -15,19 +15,23 @@ import java.util.UUID
 class UserService(
     private val userRepository: UserRepository,
 ) {
+    // Fetch all users from the database
     fun getAllUsers(): Flux<User?> {
         return userRepository.findAll()
     }
 
+    // Fetch a user with a specific UUID from the database
     fun getUserWithUid(id: UUID): Mono<User?> {
         return userRepository.findById(id)
     }
 
+    // Fetch a user's UUID with a specific Telegram ID from the database
     fun getUserUidWithTelegramId(telegramId: Long): Mono<UUID> {
         return userRepository.findByTelegramId(telegramId)
             .map { it.id }
     }
 
+    // Save a new user to the database
     private fun saveUser(createUserRequest: CreateUserRequest): Mono<User> {
         val user = User(
             id = UUID.randomUUID(),
@@ -45,11 +49,13 @@ class UserService(
             }
     }
 
+    // Create a new user with a specific Telegram ID
     @Transactional
     fun createUserWithTelegramId(telegramId: Long): Mono<UUID> {
         return createUser(CreateUserRequest(telegramId =  telegramId, solanaAddress = null))
     }
 
+    // Create a new user
     @Transactional
     fun createUser(createUserRequest: CreateUserRequest): Mono<UUID> {
         return checkUserExists(createUserRequest.telegramId)
@@ -57,6 +63,7 @@ class UserService(
             .map { user -> user.id } // Assuming `id` is the field for `userId`
     }
 
+    // Check if a user with a specific Telegram ID exists
     fun checkUserExists(telegramId: Long): Mono<Void> {
         return userRepository.findByTelegramId(telegramId)
             .flatMap { user ->
@@ -67,6 +74,4 @@ class UserService(
                 }
             }
     }
-
-
 }

@@ -11,15 +11,22 @@ import org.springframework.stereotype.Component
 
 @Component // This annotation is necessary for the correct functioning of the spring DI
 class BalanceController(private val userBalanceService: UserBalanceService) {
+
+    companion object {
+        const val BALANCE_RETRIEVAL_SUCCESS = "You currently have %d credits!"
+        const val BALANCE_RETRIEVAL_FAILURE = "Could not retrieve your balance."
+    }
+
     @CommandHandler(["/balance"])
     suspend fun balance(user: User, bot: TelegramBot, messageUpdate: MessageUpdate) {
         val userCreditBalance = userBalanceService.getUserCreditBalance(messageUpdate.user.id)
             .awaitFirstOrNull()
 
-        if (userCreditBalance != null) {
-            message { "You currently have $userCreditBalance credits!" }.send(user, bot)
-        } else {
-            message { "Could not retrieve your balance." }.send(user, bot)
-        }
+        val messageContent = userCreditBalance?.let { String.format(BALANCE_RETRIEVAL_SUCCESS, it) } ?: BALANCE_RETRIEVAL_FAILURE
+        sendMessage(messageUpdate.message.chat.id, bot, messageContent)
+    }
+
+    private suspend fun sendMessage(telegramChatId: Long, bot: TelegramBot, messageContent: String) {
+        message { messageContent }.send(telegramChatId, bot)
     }
 }

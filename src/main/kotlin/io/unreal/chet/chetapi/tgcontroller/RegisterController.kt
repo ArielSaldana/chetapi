@@ -7,7 +7,6 @@ import eu.vendeli.tgbot.types.User
 import eu.vendeli.tgbot.types.internal.MessageUpdate
 import eu.vendeli.tgbot.utils.setChain
 import io.unreal.chet.chetapi.objects.CreateUserRequest
-import io.unreal.chet.chetapi.services.UserRegistrationService
 import io.unreal.chet.chetapi.services.UserService
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.stereotype.Component
@@ -17,6 +16,10 @@ class RegisterController(
     private val conversation: TermsOfServiceChain.Name,
     private val userService: UserService
 ) {
+    companion object {
+        const val ALREADY_REGISTERED_MESSAGE = "You are already registered."
+        const val TOS_AGREEMENT_MESSAGE = "Do you agree to our TOS? https://chetai.xyz/tos"
+    }
 
     @CommandHandler(["/register"])
     suspend fun register(bot: TelegramBot, up: MessageUpdate, user: User) {
@@ -24,12 +27,12 @@ class RegisterController(
 
         val telegramUser = userService.getUserUidWithTelegramId(user.id).awaitSingleOrNull()
         if (telegramUser != null) {
-            message { "You are already registered." }.send(up.message.chat.id, bot)
+            message { ALREADY_REGISTERED_MESSAGE }.send(up.message.chat.id, bot)
             return
         }
 
-        message { "Do you agree to our TOS? https://chetai.xyz/tos" }.inlineKeyboardMarkup {
-            callbackData("Agree") { TermsOfServiceChain.TOS_YES}
+        message { TOS_AGREEMENT_MESSAGE }.inlineKeyboardMarkup {
+            callbackData("Agree") { TermsOfServiceChain.TOS_YES }
             callbackData("Deny") { TermsOfServiceChain.TOS_NO }
         }.send(user, bot)
 

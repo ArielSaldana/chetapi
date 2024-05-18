@@ -8,19 +8,16 @@ import reactor.core.publisher.Mono
 
 @Service
 class CreditTransactionService(
-    val userService: UserService,
-    val creditTransactionsRepository: CreditTransactionsRepository
+    private val userService: UserService,
+    private val creditTransactionsRepository: CreditTransactionsRepository
 ) {
-    // Let's say a user makes a call to the img api, we query the query_cost table to see the cost of the query
-    // we then query the user_balance table to see if the user has enough credits to make the query
-    // if they don't return a UserInsufficientCreditsException
-    // if they have enough credits, attempt to process the query and charge the user only on success
+    // Create a new user transaction entry in the database
     fun createUserTransactionEntry(transaction: CreditTransactions): Mono<CreditTransactions> {
-        return creditTransactionsRepository.save(transaction).map { creditTransaction ->
-            creditTransaction
-        }.switchIfEmpty(Mono.error(TransactionEntryFailureError()))
+        return creditTransactionsRepository.save(transaction)
+            .switchIfEmpty(Mono.error(TransactionEntryFailureError()))
     }
 
+    // Create a new user credit transaction item in the database
     fun createUserCreditTransactionItem(
         telegramId: Long,
         amount: Int,
@@ -29,14 +26,16 @@ class CreditTransactionService(
     ): Mono<CreditTransactions> {
         return userService.getUserUidWithTelegramId(telegramId)
             .flatMap { userUid ->
-                createUserTransactionEntry(
-                    CreditTransactions(
-                        uid = userUid,
-                        amount = amount,
-                        transactionType = transactionType,
-                        description = transactionDescription
-                    )
+                val creditTransaction = CreditTransactions(
+                    uid = userUid,
+                    amount = amount,
+                    transactionType = transactionType,
+                    description = transactionDescription
                 )
+                createUserTransactionEntry(creditTransaction)
+            }
+            .onErrorResume { ex ->
+                Mono.error(RuntimeException("Error occurred while creating user credit transaction item: ${ex.message}", ex))
             }
     }
 }

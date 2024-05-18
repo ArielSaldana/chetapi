@@ -7,14 +7,9 @@ import eu.vendeli.tgbot.types.User
 import eu.vendeli.tgbot.types.internal.BreakCondition
 import eu.vendeli.tgbot.types.internal.ChainLink
 import eu.vendeli.tgbot.types.internal.ProcessedUpdate
-import io.unreal.chet.chetapi.objects.CreateUserRequest
 import io.unreal.chet.chetapi.objects.QueryCostId
-import io.unreal.chet.chetapi.objects.TransactionType
-import io.unreal.chet.chetapi.repository.mongo.CreditTransactions
 import io.unreal.chet.chetapi.services.CreditService
-import io.unreal.chet.chetapi.services.CreditTransactionService
 import io.unreal.chet.chetapi.services.UserRegistrationService
-import io.unreal.chet.chetapi.services.UserService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -24,13 +19,16 @@ import org.springframework.stereotype.Component
 @Component
 @InputChain
 class TermsOfServiceChain(
-    private val userService: UserService,
     private val userRegistrationService: UserRegistrationService,
     private val creditService: CreditService
 ) {
     companion object {
         const val TOS_YES = "YES"
         const val TOS_NO = "NO"
+        const val ACCOUNT_CREATION_SUCCESS = "Congratulations! Your account has been created"
+        const val ACCOUNT_CREATION_FAILURE = "User creation failed for an unknown reason."
+        const val ERROR_CREATING_USER = "Error creating user"
+        const val USER_REGISTRATION_ABORTED = "User registration aborted. You need to agree to the TOS to use our service."
     }
 
     @Component
@@ -45,9 +43,7 @@ class TermsOfServiceChain(
                     val createdUserId = userRegistrationService.registerUserWithTelegramId(user.id).awaitSingleOrNull()
 
                     if (createdUserId != null) {
-                        message { "Congratulations! Your account has been created" }
-                            .replyKeyboardRemove(true)
-                            .send(to, bot)
+                        sendMessage(bot, to, ACCOUNT_CREATION_SUCCESS)
 
                         val creditService = creditService.queryTransaction(
                             user.id, QueryCostId.PROMOTION100CREDITS,
@@ -55,27 +51,25 @@ class TermsOfServiceChain(
                             "Offering users a one time sign up credit").awaitSingleOrNull()
 
                         if (creditService !== null) {
-                            message { "You have received 100 credits for signing up!" }
-                                .replyKeyboardRemove(true)
-                                .send(to, bot)
+                            sendMessage(bot, to, "You have received 100 credits for signing up!")
                         }
                     } else {
-                        message { "User creation failed for an unknown reason." }
-                            .replyKeyboardRemove(true)
-                            .send(to, bot)
+                        sendMessage(bot, to, ACCOUNT_CREATION_FAILURE)
                     }
                 } catch (ex: Exception) {
-                    message { "Error creating user $ex" }
-                        .replyKeyboardRemove(true)
-                        .send(to, bot)
+                    sendMessage(bot, to, "$ERROR_CREATING_USER $ex")
                 }
             }
         }
 
         override suspend fun breakAction(user: User, update: ProcessedUpdate, bot: TelegramBot) {
-            message { "User registration aborted. You need to agree to the TOS to use our service." }
+            sendMessage(bot, bot.userData.get<Long>(user.id, "deletingInChat") ?: return, USER_REGISTRATION_ABORTED)
+        }
+
+        private suspend fun sendMessage(bot: TelegramBot, to: Long, messageContent: String) {
+            message { messageContent }
                 .replyKeyboardRemove(true)
-                .send(bot.userData.get<Long>(user.id, "deletingInChat") ?: return, bot)
+                .send(to, bot)
         }
     }
 }

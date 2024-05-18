@@ -21,6 +21,7 @@ class PromptService(
     private val promptRepository: PromptRepository,
 ) {
 
+    // Check if a user should have access based on the number of requests
     fun shouldUserHaveAccess(promptRequest: PromptRequest, numerOfRequests: Int): Mono<Boolean> {
         return userService.getUserUidWithTelegramId(promptRequest.telegramId)
             .switchIfEmpty(Mono.error(UserNotFoundError()))
@@ -37,6 +38,7 @@ class PromptService(
             }
     }
 
+    // Save a prompt request
     fun savePrompt(promptRequest: PromptRequest, isImage: Boolean): Mono<Boolean> {
         return userRepository.findByTelegramId(promptRequest.telegramId)
             .switchIfEmpty(Mono.error(UserNotFoundError()))
@@ -50,6 +52,7 @@ class PromptService(
             }
     }
 
+    // Process a prompt request
     suspend fun processPrompt(promptRequest: PromptRequest): Mono<String> {
         return mono {
             val client = OpenAIClient()
@@ -75,7 +78,7 @@ class PromptService(
         }
     }
 
-    // Helper function to determine the QueryCostID based on the PromptRequest
+    // Determine the QueryCostID based on the PromptRequest
     fun determineQueryCostId(promptRequest: PromptRequest): QueryCostID {
         return if (promptRequest.isImage) {
             QueryCostID.DALLE3

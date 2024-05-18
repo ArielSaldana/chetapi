@@ -8,21 +8,22 @@ import reactor.core.publisher.Mono
 
 @Service
 class QueryCostService(private val queryCostRepository: QueryCostRepository) {
+    // Add a new query cost to the database if it does not exist
     fun addQueryCostIfNotExist(queryCost: QueryCost): Mono<QueryCost> {
         return queryCostRepository.findById(queryCost.queryId)
             .switchIfEmpty(queryCostRepository.save(queryCost))
+            .onErrorResume { ex ->
+                Mono.error(RuntimeException("Error occurred while adding query cost: ${ex.message}", ex))
+            }
     }
 
+    // Fetch the cost of a query with a specific ID from the database
     fun getQueryCost(queryId: Int): Mono<Int> {
         return queryCostRepository.findById(queryId).map { queryCost -> queryCost.creditCost }
             .switchIfEmpty(Mono.error(QueryCostNotFoundError()))
     }
 
-    // assuming 1000 = $10 worth of credits
-    // openai img cost 4 cents per image
-    // if we wanted to make a profit we could charge 10 cents per image
-    // if they top up $10 they get 1000 credits
-    // if they used it only for image generations at 10 cents per image they would get 100 images
+    // Initialize static data
     fun initializeStaticData() {
         val staticMembers = listOf(
             QueryCost(

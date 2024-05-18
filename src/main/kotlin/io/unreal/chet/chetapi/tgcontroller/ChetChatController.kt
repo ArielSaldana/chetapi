@@ -20,9 +20,17 @@ import org.springframework.stereotype.Component
 @Component
 class ChetChatController(val promptService: PromptService, private val creditService: CreditService) {
 
-    @RegexCommandHandler("^/chet .*")
+    companion object {
+        const val CHET_COMMAND = "/chet"
+        const val CHARGE = "charge"
+        const val CHARGE_FOR_CHAT35_PROMPT = "charge for chat35 prompt"
+        const val PROMPT_PROCESSED_SUCCESSFULLY = "Prompt processed successfully"
+        const val UNEXPECTED_ERROR_OCCURRED = "An unexpected error occurred"
+    }
+
+    @RegexCommandHandler("^$CHET_COMMAND .*")
     suspend fun chetChat(bot: TelegramBot, messageUpdate: MessageUpdate) {
-        val prompt = messageUpdate.text.replace("/chet", "").trim()
+        val prompt = messageUpdate.text.replace(CHET_COMMAND, "").trim()
         val request = PromptRequest(telegramId = messageUpdate.user.id, prompt = prompt, isImage = false)
 
         val responseEntity = mono {
@@ -31,29 +39,35 @@ class ChetChatController(val promptService: PromptService, private val creditSer
                 ResponseEntity.ok(
                     HttpResponse(
                         error = null,
-                        success = SimpleStringResponseEntity(result ?: "Prompt processed successfully")
+                        success = SimpleStringResponseEntity(result ?: PROMPT_PROCESSED_SUCCESSFULLY)
                     )
                 )
             } catch (error: Exception) {
                 ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    HttpResponse(error = error.message, success = null)
+                    HttpResponse(error = error.localizedMessage, success = null)
                 )
             }
         }.awaitSingleOrNull()
 
-        val messageContent = when {
-            responseEntity?.body?.success != null -> responseEntity.body?.success?.message ?: "Prompt processed successfully"
-            responseEntity?.body?.error != null -> responseEntity.body?.error ?: "An error occurred"
-            else -> "An unexpected error occurred"
-        }
-
+        val messageContent = responseEntity?.body?.success?.message ?: responseEntity?.body?.error ?: UNEXPECTED_ERROR_OCCURRED
         val escapedString = escapeMarkdownV2(messageContent)
 
         val messageFooter =
             "\uD83D\uDCAC [Telegram](https://t.me/chetverify) \uD83D\uDCC8 [Dexscreener](https://dexscreener.com/solana/hdkb6ksckptssrutdnddtuqkx1pg2teocr2v67qm9gqt)"
 
+        sendMessage(bot, messageUpdate, escapedString, messageFooter)
+
+        creditService.queryTransaction(
+            messageUpdate.user.id,
+            queryCostId = QueryCostId.CHAT35,
+            CHARGE,
+            CHARGE_FOR_CHAT35_PROMPT
+        ).awaitSingleOrNull()
+    }
+
+    private suspend fun sendMessage(bot: TelegramBot, messageUpdate: MessageUpdate, messageContent: String, messageFooter: String) {
         message {
-            String.format("%s \r\n\r\n%s", escapedString, messageFooter)
+            String.format("%s \r\n\r\n%s", messageContent, messageFooter)
         }
             .options {
                 parseMode = ParseMode.MarkdownV2
@@ -61,13 +75,6 @@ class ChetChatController(val promptService: PromptService, private val creditSer
                 replyParameters(messageId = messageUpdate.message.messageId)
             }
             .send(to = messageUpdate.message.chat.id, bot)
-
-        creditService.queryTransaction(
-            messageUpdate.message.chat.id,
-            queryCostId = QueryCostId.CHAT35,
-            "charge",
-            "charge for chat35 prompt"
-        ).awaitSingleOrNull()
     }
 
     private fun escapeMarkdownV2(text: String): String {

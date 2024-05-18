@@ -6,64 +6,112 @@ import eu.vendeli.tgbot.api.media.sendPhoto
 import eu.vendeli.tgbot.api.message.message
 import eu.vendeli.tgbot.types.ParseMode
 import eu.vendeli.tgbot.types.internal.MessageUpdate
-import io.unreal.chet.chetapi.objects.HttpResponse
+import io.unreal.chet.chetapi.error.UserExceededCreditError
 import io.unreal.chet.chetapi.objects.PromptRequest
 import io.unreal.chet.chetapi.objects.QueryCostId
-import io.unreal.chet.chetapi.objects.SimpleStringResponseEntity
 import io.unreal.chet.chetapi.services.CreditService
 import io.unreal.chet.chetapi.services.PromptService
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
-import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Component
 
 @Component
-class ChetImgController(val promptService: PromptService, val creditService: CreditService) {
+class ChetImgController(
+    val promptService: PromptService,
+    val creditService: CreditService
+) {
 
-    @RegexCommandHandler("^/chetimg .*")
+    companion object {
+        const val CHET_IMG_COMMAND = "/chetimg"
+        const val CHARGE = "charge"
+        const val CHARGE_FOR_DALL3_PROMPT = "charge for dall3 prompt"
+        const val PROMPT_PROCESSED_SUCCESSFULLY = "Prompt processed successfully"
+        const val UNEXPECTED_ERROR_OCCURRED_OPENAI = "We're having trouble generating the image right now.."
+        const val CREDIT_LIMIT_EXCEEDED = "You have exceeded your credit limit."
+    }
+
+    @RegexCommandHandler("^$CHET_IMG_COMMAND .*")
     suspend fun chetChat(bot: TelegramBot, messageUpdate: MessageUpdate) {
-        val prompt = messageUpdate.text.replace("/chetimg", "").trim()
+        val prompt = messageUpdate.text.replace(CHET_IMG_COMMAND, "").trim()
         val request = PromptRequest(telegramId = messageUpdate.user.id, prompt = prompt, isImage = true)
 
-        val responseEntity = mono {
-            try {
-                val result = promptService.processPrompt(request).awaitSingleOrNull()
-                ResponseEntity.ok(
-                    HttpResponse(
-                        error = null,
-                        success = SimpleStringResponseEntity(result ?: "Prompt processed successfully")
-                    )
-                )
-            } catch (error: Exception) {
-                ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    HttpResponse(error = error.message, success = null)
-                )
-            }
-        }.awaitSingleOrNull()
+        try {
+            // Perform transaction check first
+            creditService.checkIfUserHasEnoughCredit(messageUpdate.user.id, QueryCostId.DALLE3).awaitSingleOrNull()
 
-        if (responseEntity?.body?.success != null) {
-            sendPhoto { responseEntity.body?.success?.message ?: "Prompt processed successfully" }
-                .options {
-                    parseMode = ParseMode.MarkdownV2
-                    replyParameters(messageId = messageUpdate.message.messageId)
-                }
-                .sendAsync(to = messageUpdate.message.chat.id, bot)
-        } else {
-            val messageContent = responseEntity?.body?.error ?: "An unexpected error occurred"
-            message { messageContent }
-                .options {
-                    parseMode = ParseMode.MarkdownV2
-                    replyParameters(messageId = messageUpdate.message.messageId)
-                }
-                .sendAsync(to = messageUpdate.message.chat.id, bot)
+            message { "Generating Image..." }
+                .options { replyParameters(messageId = messageUpdate.message.messageId) }
+                .sendAsync(messageUpdate.message.chat.id, bot).await()
+
+            // Process the prompt only if the transaction check succeeds
+            val result = promptService.processPrompt(request).awaitSingleOrNull()
+            val messageContent = result ?: PROMPT_PROCESSED_SUCCESSFULLY
+            sendMessage(bot, messageUpdate, messageContent, request.isImage)
+
+            creditService.queryTransaction(
+                messageUpdate.message.chat.id,
+                queryCostId = QueryCostId.DALLE3,
+                CHARGE,
+                CHARGE_FOR_DALL3_PROMPT
+            ).awaitSingleOrNull()
+
+        } catch (error: UserExceededCreditError) {
+            println("User exceeded credit: ${error.localizedMessage}")
+            sendMessage(bot, messageUpdate, CREDIT_LIMIT_EXCEEDED, false)
+        } catch (error: Exception) {
+            println("Error occurred while processing prompt: ${error.localizedMessage}")
+            sendMessage(bot, messageUpdate, UNEXPECTED_ERROR_OCCURRED_OPENAI, false)
         }
+    }
 
-        creditService.queryTransaction(
-            messageUpdate.message.chat.id,
-            queryCostId = QueryCostId.DALLE3,
-            "charge",
-            "charge for dall3 prompt"
-        ).awaitSingleOrNull()
+    private suspend fun sendMessage(
+        bot: TelegramBot,
+        messageUpdate: MessageUpdate,
+        messageContent: String,
+        isImage: Boolean
+    ) {
+        if (isImage) {
+            sendPhoto { messageContent }
+                .options {
+                    parseMode = ParseMode.MarkdownV2
+                    replyParameters(messageId = messageUpdate.message.messageId)
+                }
+                .sendAsync(to = messageUpdate.message.chat.id, bot).await()
+        } else {
+            val escapedString = escapeMarkdownV2(messageContent)
+            sendMarkdownMessage(bot, messageUpdate, escapedString)
+        }
+    }
+
+    private suspend fun sendMarkdownMessage(bot: TelegramBot, messageUpdate: MessageUpdate, messageContent: String) {
+        message {
+            String.format("%s", messageContent) // Corrected format string
+        }
+            .options {
+                parseMode = ParseMode.MarkdownV2
+                linkPreviewOptions { isDisabled = true }
+                replyParameters(messageId = messageUpdate.message.messageId)
+            }
+            .send(to = messageUpdate.message.chat.id, bot)
+    }
+
+    private fun escapeMarkdownV2(text: String): String {
+        return text
+            .replace("_", "\\_")
+            .replace("*", "\\*")
+            .replace("~", "\\~")
+            .replace("`", "\\`")
+            .replace(">", "\\>")
+            .replace("+", "\\+")
+            .replace("=", "\\=")
+            .replace("{", "\\{")
+            .replace("}", "\\}")
+            .replace(".", "\\.")
+            .replace("#", "\\#")
+            .replace("!", "\\!")
+            .replace("-", "\\-")
+            .replace("|", "\\|")
+            .replace("(", "\\(")
+            .replace(")", "\\)")
     }
 }
