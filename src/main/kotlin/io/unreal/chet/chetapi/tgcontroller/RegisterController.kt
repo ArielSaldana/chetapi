@@ -34,7 +34,7 @@ class RegisterController(
         message { TOS_AGREEMENT_MESSAGE }.inlineKeyboardMarkup {
             callbackData("Agree") { TermsOfServiceChain.TOS_YES }
             callbackData("Deny") { TermsOfServiceChain.TOS_NO }
-        }.send(user, bot)
+        }.send(up.message.chat.id, bot)
 
         bot.inputListener.setChain(up.user, conversation)
         bot.userData[up.user, "deletingInChat"] = up.message.chat.id
