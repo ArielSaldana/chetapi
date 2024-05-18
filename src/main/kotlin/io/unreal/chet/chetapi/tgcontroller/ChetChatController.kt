@@ -7,7 +7,9 @@ import eu.vendeli.tgbot.types.ParseMode
 import eu.vendeli.tgbot.types.internal.MessageUpdate
 import io.unreal.chet.chetapi.objects.HttpResponse
 import io.unreal.chet.chetapi.objects.PromptRequest
+import io.unreal.chet.chetapi.objects.QueryCostId
 import io.unreal.chet.chetapi.objects.SimpleStringResponseEntity
+import io.unreal.chet.chetapi.services.CreditService
 import io.unreal.chet.chetapi.services.PromptService
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
@@ -16,7 +18,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Component
 
 @Component
-class ChetChatController(val promptService: PromptService) {
+class ChetChatController(val promptService: PromptService, private val creditService: CreditService) {
 
     @RegexCommandHandler("^/chet .*")
     suspend fun chetChat(bot: TelegramBot, messageUpdate: MessageUpdate) {
@@ -25,7 +27,7 @@ class ChetChatController(val promptService: PromptService) {
 
         val responseEntity = mono {
             try {
-                val result = promptService.processPrompt(request, 20).awaitSingleOrNull()
+                val result = promptService.processPrompt(request).awaitSingleOrNull()
                 ResponseEntity.ok(
                     HttpResponse(
                         error = null,
@@ -45,7 +47,31 @@ class ChetChatController(val promptService: PromptService) {
             else -> "An unexpected error occurred"
         }
 
-        val escapedString = messageContent
+        val escapedString = escapeMarkdownV2(messageContent)
+
+        val messageFooter =
+            "\uD83D\uDCAC [Telegram](https://t.me/chetverify) \uD83D\uDCC8 [Dexscreener](https://dexscreener.com/solana/hdkb6ksckptssrutdnddtuqkx1pg2teocr2v67qm9gqt)"
+
+        message {
+            String.format("%s \r\n\r\n%s", escapedString, messageFooter)
+        }
+            .options {
+                parseMode = ParseMode.MarkdownV2
+                linkPreviewOptions { isDisabled = true }
+                replyParameters(messageId = messageUpdate.message.messageId)
+            }
+            .send(to = messageUpdate.message.chat.id, bot)
+
+        creditService.queryTransaction(
+            messageUpdate.message.chat.id,
+            queryCostId = QueryCostId.CHAT35,
+            "charge",
+            "charge for chat35 prompt"
+        ).awaitSingleOrNull()
+    }
+
+    private fun escapeMarkdownV2(text: String): String {
+        return text
             .replace("_", "\\_")
             .replace("*", "\\*")
             .replace("~", "\\~")
@@ -62,19 +88,5 @@ class ChetChatController(val promptService: PromptService) {
             .replace("|", "\\|")
             .replace("(", "\\(")
             .replace(")", "\\)")
-
-        val messageFooter =
-            "\uD83D\uDCAC [Telegram](https://t.me/chetverify) \uD83D\uDCC8 [Dexscreener](https://dexscreener.com/solana/hdkb6ksckptssrutdnddtuqkx1pg2teocr2v67qm9gqt)"
-
-
-        message {
-            String.format("%s \r\n\r\n%s", escapedString, messageFooter)
-        }
-            .options {
-                parseMode = ParseMode.MarkdownV2
-                linkPreviewOptions { isDisabled = true }
-                replyParameters(messageId = messageUpdate.message.messageId)
-            }
-            .send(to = messageUpdate.message.chat.id, bot)
     }
 }

@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.util.Date
 import java.util.UUID
 
 @Service
@@ -29,23 +28,11 @@ class UserService(
             .map { it.id }
     }
 
-    private fun checkUserExists(telegramId: Long): Mono<Void> {
-        return userRepository.findByTelegramId(telegramId)
-            .flatMap {
-                Mono.error<Void>(UserExistsError("User already exists"))
-            }
-            .switchIfEmpty(Mono.empty()) // Completes successfully if no user is found
-    }
-
-    private fun saveUser(createUserRequest: CreateUserRequest): Mono<Void> {
-        val uuid = UUID.randomUUID()
-        val currentDate = Date()
-
+    private fun saveUser(createUserRequest: CreateUserRequest): Mono<User> {
         val user = User(
+            id = UUID.randomUUID(),
             telegramId = createUserRequest.telegramId,
             solanaWalletAddress = "",
-            created = currentDate,
-            modified = currentDate
         )
 
         return userRepository.save(user)
@@ -56,12 +43,30 @@ class UserService(
                     Mono.error(ex)
                 }
             }
-            .then()
     }
 
     @Transactional
-    fun createUser(createUserRequest: CreateUserRequest): Mono<Void> {
+    fun createUserWithTelegramId(telegramId: Long): Mono<UUID> {
+        return createUser(CreateUserRequest(telegramId =  telegramId, solanaAddress = null))
+    }
+
+    @Transactional
+    fun createUser(createUserRequest: CreateUserRequest): Mono<UUID> {
         return checkUserExists(createUserRequest.telegramId)
             .then(saveUser(createUserRequest))
+            .map { user -> user.id } // Assuming `id` is the field for `userId`
     }
+
+    fun checkUserExists(telegramId: Long): Mono<Void> {
+        return userRepository.findByTelegramId(telegramId)
+            .flatMap { user ->
+                if (user != null) {
+                    Mono.error<Void>(RuntimeException("User already exists"))
+                } else {
+                    Mono.empty<Void>()
+                }
+            }
+    }
+
+
 }

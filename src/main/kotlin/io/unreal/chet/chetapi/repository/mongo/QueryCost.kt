@@ -6,6 +6,12 @@ import org.springframework.data.mongodb.core.mapping.Field
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository
 import org.springframework.stereotype.Repository
 
+enum class QueryCostID(val id: Int) {
+    CHAT35(0),
+    CHAT40(1),
+    DALLE3(2);
+}
+
 @Document(collection = "query_cost")
 data class QueryCost(
     @Id

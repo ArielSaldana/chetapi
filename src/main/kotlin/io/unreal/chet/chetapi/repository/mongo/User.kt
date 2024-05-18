@@ -23,10 +23,10 @@ data class User(
     var solanaWalletAddress: String?,
 
     @Field("created")
-    val created: Date,
+    val created: Date = Date(),
 
     @Field("modified")
-    var modified: Date
+    var modified: Date = Date()
 )
 
 @Repository

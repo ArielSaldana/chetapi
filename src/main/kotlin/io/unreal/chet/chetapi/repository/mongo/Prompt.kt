@@ -14,14 +14,19 @@ import java.util.UUID
 data class Prompt(
     @Id
     val id: UUID = UUID.randomUUID(),
+
     @Field("user_id")
     val userId: UUID,
+
     @Field("prompt")
     val prompt: String,
+
     @Field("is_image")
     val isImage: Boolean,
+
     @Field("created")
     val created: Date = Date(),
+
     @Field("modified")
     val modified: Date = Date()
 )

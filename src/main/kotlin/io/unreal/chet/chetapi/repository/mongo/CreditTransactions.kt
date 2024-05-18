@@ -10,7 +10,7 @@ import java.util.*
 @Document(collection = "credit_transactions")
 data class CreditTransactions(
     @Id
-    val transactionId: UUID,
+    val id: UUID = UUID.randomUUID(),
 
     @Field("uid")
     val uid: UUID,
@@ -25,7 +25,7 @@ data class CreditTransactions(
     val description: String,
 
     @Field("created")
-    val created: Date
+    val created: Date = Date()
 )
 
 @Repository

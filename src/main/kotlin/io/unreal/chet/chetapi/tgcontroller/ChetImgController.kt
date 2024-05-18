@@ -8,7 +8,9 @@ import eu.vendeli.tgbot.types.ParseMode
 import eu.vendeli.tgbot.types.internal.MessageUpdate
 import io.unreal.chet.chetapi.objects.HttpResponse
 import io.unreal.chet.chetapi.objects.PromptRequest
+import io.unreal.chet.chetapi.objects.QueryCostId
 import io.unreal.chet.chetapi.objects.SimpleStringResponseEntity
+import io.unreal.chet.chetapi.services.CreditService
 import io.unreal.chet.chetapi.services.PromptService
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.reactor.mono
@@ -17,7 +19,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Component
 
 @Component
-class ChetImgController(val promptService: PromptService) {
+class ChetImgController(val promptService: PromptService, val creditService: CreditService) {
 
     @RegexCommandHandler("^/chetimg .*")
     suspend fun chetChat(bot: TelegramBot, messageUpdate: MessageUpdate) {
@@ -26,7 +28,7 @@ class ChetImgController(val promptService: PromptService) {
 
         val responseEntity = mono {
             try {
-                val result = promptService.processPrompt(request, 10).awaitSingleOrNull()
+                val result = promptService.processPrompt(request).awaitSingleOrNull()
                 ResponseEntity.ok(
                     HttpResponse(
                         error = null,
@@ -56,5 +58,12 @@ class ChetImgController(val promptService: PromptService) {
                 }
                 .sendAsync(to = messageUpdate.message.chat.id, bot)
         }
+
+        creditService.queryTransaction(
+            messageUpdate.message.chat.id,
+            queryCostId = QueryCostId.DALLE3,
+            "charge",
+            "charge for dall3 prompt"
+        ).awaitSingleOrNull()
     }
 }

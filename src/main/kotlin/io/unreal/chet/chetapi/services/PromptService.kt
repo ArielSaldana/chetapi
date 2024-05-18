@@ -5,6 +5,7 @@ import io.unreal.chet.chetapi.externalservices.OpenAIClient
 import io.unreal.chet.chetapi.objects.PromptRequest
 import io.unreal.chet.chetapi.repository.mongo.Prompt
 import io.unreal.chet.chetapi.repository.mongo.PromptRepository
+import io.unreal.chet.chetapi.repository.mongo.QueryCostID
 import io.unreal.chet.chetapi.repository.mongo.UserRepository
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.mono
@@ -17,7 +18,7 @@ import java.util.*
 class PromptService(
     private val userService: UserService,
     private val userRepository: UserRepository,
-    private val promptRepository: PromptRepository
+    private val promptRepository: PromptRepository,
 ) {
 
     fun shouldUserHaveAccess(promptRequest: PromptRequest, numerOfRequests: Int): Mono<Boolean> {
@@ -49,34 +50,37 @@ class PromptService(
             }
     }
 
-    suspend fun processPrompt(promptRequest: PromptRequest, numberOfRequests: Int): Mono<String> {
-        return shouldUserHaveAccess(promptRequest, numberOfRequests)
-            .flatMap { shouldHaveAccess ->
-                if (shouldHaveAccess) {
-                    mono {
-                        val client = OpenAIClient()
-                        try {
-                            if (promptRequest.isImage) {
-                                val chatResponse = client.getImage(promptRequest.prompt)[0].url
-                                savePrompt(promptRequest, promptRequest.isImage).awaitSingle()
-                                chatResponse
-                            } else {
-                                val chatResponse = client.getChat(promptRequest.prompt)
-                                savePrompt(promptRequest, promptRequest.isImage).awaitSingle()
-                                chatResponse
-                            }
-                        } catch (e: Exception) {
-                            savePrompt(promptRequest, promptRequest.isImage).awaitSingle()
-                            Mono.error<String>(RuntimeException("Failed generating prompt")).awaitSingle()
-                        }
-                    }
+    suspend fun processPrompt(promptRequest: PromptRequest): Mono<String> {
+        return mono {
+            val client = OpenAIClient()
+            try {
+                val userUUID = userService.getUserUidWithTelegramId(promptRequest.telegramId).awaitSingle()
+//                creditTransactionService.chargeUserForQuery(userUUID, determineQueryCostId(promptRequest)).awaitSingle()
+
+                val response = if (promptRequest.isImage) {
+                    val chatResponse = client.getImage(promptRequest.prompt)[0].url
+                    savePrompt(promptRequest, promptRequest.isImage).awaitSingle()
+                    chatResponse
                 } else {
-                    Mono.error<String>(RuntimeException("User does not have access"))
+                    val chatResponse = client.getChat(promptRequest.prompt)
+                    savePrompt(promptRequest, promptRequest.isImage).awaitSingle()
+                    chatResponse
                 }
+                response
+            } catch (e: Exception) {
+                println(e)
+                savePrompt(promptRequest, promptRequest.isImage).awaitSingle()
+                throw RuntimeException("Failed generating prompt", e)
             }
+        }
     }
 
-    private fun performAdditionalWork(): Mono<Boolean> {
-        return Mono.just(true) // Replace with your actual result
+    // Helper function to determine the QueryCostID based on the PromptRequest
+    fun determineQueryCostId(promptRequest: PromptRequest): QueryCostID {
+        return if (promptRequest.isImage) {
+            QueryCostID.DALLE3
+        } else {
+            QueryCostID.CHAT35
+        }
     }
 }

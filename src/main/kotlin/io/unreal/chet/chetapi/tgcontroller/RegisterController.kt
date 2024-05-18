@@ -7,12 +7,16 @@ import eu.vendeli.tgbot.types.User
 import eu.vendeli.tgbot.types.internal.MessageUpdate
 import eu.vendeli.tgbot.utils.setChain
 import io.unreal.chet.chetapi.objects.CreateUserRequest
+import io.unreal.chet.chetapi.services.UserRegistrationService
 import io.unreal.chet.chetapi.services.UserService
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.stereotype.Component
 
 @Component
-class RegisterController(private val userService: UserService, private val conversation: TermsOfServiceChain.Name) {
+class RegisterController(
+    private val conversation: TermsOfServiceChain.Name,
+    private val userService: UserService
+) {
 
     @CommandHandler(["/register"])
     suspend fun register(bot: TelegramBot, up: MessageUpdate, user: User) {
