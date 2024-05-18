@@ -27,5 +27,8 @@ WORKDIR /app
 # Copy the built JAR file from the build stage
 COPY --from=build /app/build/libs/*.jar /app/chetai-telegram-bot.jar
 
+# Copy the .env file to the runtime container
+COPY .env .
+
 # Run the application
 CMD ["java", "-jar", "chetai-telegram-bot.jar"]
