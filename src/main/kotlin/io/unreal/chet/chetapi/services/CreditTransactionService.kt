@@ -11,10 +11,14 @@ class CreditTransactionService(
     private val userService: UserService,
     private val creditTransactionsRepository: CreditTransactionsRepository
 ) {
+
     // Create a new user transaction entry in the database
     fun createUserTransactionEntry(transaction: CreditTransactions): Mono<CreditTransactions> {
-        return creditTransactionsRepository.save(transaction)
-            .switchIfEmpty(Mono.error(TransactionEntryFailureError()))
+        return creditTransactionsRepository.insert(transaction)
+            .switchIfEmpty(Mono.error(TransactionEntryFailureError("Failed to save transaction entry")))
+            .onErrorResume { ex ->
+                Mono.error(TransactionEntryFailureError("An error occurred while saving the transaction: ${ex.message}"))
+            }
     }
 
     // Create a new user credit transaction item in the database
