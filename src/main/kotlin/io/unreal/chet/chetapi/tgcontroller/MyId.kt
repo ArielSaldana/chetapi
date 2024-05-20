@@ -13,7 +13,7 @@ class MyId() {
     companion object {
         const val MY_ID_COMMAND = "/id"
         const val FIND_ID_COMMAND = "/fid"
-        const val FAILED_TO_FIND_USERID_ERROR_MESSAGE = "Failed to get user id"
+        const val FAILED_TO_FIND_USERID_ERROR_MESSAGE = "Failed to get user id, user might have telegram privacy settings enabled"
         const val NULL_STRING = "null"
     }
 
