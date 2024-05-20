@@ -51,19 +51,29 @@ class SendCredits(
             try {
                 val success = creditService.transferCredits(user.id, recipient, amount).awaitSingle()
                 if (success) {
-                    message { CREDIT_TRANSFER_SUCCESS }.send(up.message.chat.id, bot)
+                    message { CREDIT_TRANSFER_SUCCESS }
+                        .options { replyParameters(messageId = up.message.messageId) }
+                        .send(up.message.chat.id, bot)
                 } else {
-                    message { CREDIT_TRANSFER_FAILURE }.send(up.message.chat.id, bot)
+                    message { CREDIT_TRANSFER_FAILURE }
+                        .options { replyParameters(messageId = up.message.messageId) }
+                        .send(up.message.chat.id, bot)
                 }
             } catch (ex: Exception) {
                 if (ex is UserExceededCreditError || ex is UserInsufficientCreditsError || ex is UserNotFoundError) {
-                    message { ex.localizedMessage }.send(up.message.chat.id, bot)
+                    message { ex.localizedMessage }
+                        .options { replyParameters(messageId = up.message.messageId) }
+                        .send(up.message.chat.id, bot)
                 } else {
-                    message { CREDIT_TRANSFER_FAILURE }.send(up.message.chat.id, bot)
+                    message { CREDIT_TRANSFER_FAILURE }
+                        .options { replyParameters(messageId = up.message.messageId) }
+                        .send(up.message.chat.id, bot)
                 }
             }
         } else {
-            message { INVALID_SEND_COMMAND_FORMAT }.send(up.message.chat.id, bot)
+            message { INVALID_SEND_COMMAND_FORMAT }.
+            options { replyParameters(messageId = up.message.messageId) }
+                .send(up.message.chat.id, bot)
         }
     }
 }
