@@ -1,7 +1,9 @@
 package io.unreal.chet.chetapi.services
 
 import io.unreal.chet.chetapi.error.UserExceededCreditError
+import io.unreal.chet.chetapi.error.UserNotFoundError
 import io.unreal.chet.chetapi.objects.QueryCostId
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.util.*
@@ -14,7 +16,8 @@ import java.util.*
 class CreditService(
     private val queryCostService: QueryCostService,
     private val userBalanceService: UserBalanceService,
-    private val creditTransactionService: CreditTransactionService
+    private val creditTransactionService: CreditTransactionService,
+    private val userService: UserService
 ) {
     /**
      * Process a query transaction.
@@ -74,6 +77,46 @@ class CreditService(
                             Mono.error(UserExceededCreditError())
                         }
                     }
+            }
+    }
+
+    suspend fun transferCredits(
+        senderTelegramId: Long,
+        recipientTelegramId: Long,
+        amount: Int
+    ): Mono<Boolean> {
+        val senderUid = userService.getUserUidWithTelegramId(senderTelegramId).awaitSingleOrNull()
+            ?: return Mono.error(UserNotFoundError())
+        val recipientUid = userService.getUserUidWithTelegramId(recipientTelegramId).awaitSingleOrNull()
+            ?: return Mono.error(UserNotFoundError("Recipient ID not found"))
+
+        return userBalanceService.getUserCreditBalance(senderTelegramId)
+            .flatMap { senderBalance ->
+                if (senderBalance - amount < 0) {
+                    Mono.error(UserExceededCreditError())
+                } else {
+                    // Update the user_balance relative to their current value
+                    userBalanceService.updateUserBalance(senderUid, -amount)
+                        // update the recipient's balance
+                        .then(userBalanceService.updateUserBalance(recipientUid, amount))
+                        // add entries into both users' transaction tables
+                        .then(
+                            creditTransactionService.createUserCreditTransactionItem(
+                                senderTelegramId,
+                                -amount,
+                                "TRANSFER",
+                                "Transfer to $recipientTelegramId"
+                            ).then(
+                                creditTransactionService.createUserCreditTransactionItem(
+                                    recipientTelegramId,
+                                    amount,
+                                    "TRANSFER",
+                                    "Transfer from $senderTelegramId"
+                                )
+                            )
+                        )
+                        .then(Mono.just(true))
+                }
             }
     }
 
