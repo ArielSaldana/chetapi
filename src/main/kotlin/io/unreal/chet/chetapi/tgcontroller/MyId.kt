@@ -15,6 +15,8 @@ class MyId() {
 
     @CommandHandler([MY_ID_COMMAND])
     suspend fun myId(bot: TelegramBot, up: MessageUpdate, user: User) {
-        message { user.id.toString() }.send(up.message.chat.id, bot)
+        message { user.id.toString() }
+            .options { replyParameters(messageId = up.message.messageId) }
+            .send(up.message.chat.id, bot)
     }
 }
