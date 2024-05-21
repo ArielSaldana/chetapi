@@ -71,8 +71,7 @@ class SendCredits(
                 }
             }
         } else {
-            message { INVALID_SEND_COMMAND_FORMAT }.
-            options { replyParameters(messageId = up.message.messageId) }
+            message { INVALID_SEND_COMMAND_FORMAT }.options { replyParameters(messageId = up.message.messageId) }
                 .send(up.message.chat.id, bot)
         }
     }
