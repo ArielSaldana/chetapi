@@ -30,7 +30,7 @@ class QueryCostService(private val queryCostRepository: QueryCostRepository) {
                 queryId = 0,
                 queryName = "chat-3.5",
                 queryDescription = "OpenAI chat API version 3.5",
-                creditCost = -1
+                creditCost = 0
             ),
             QueryCost(
                 queryId = 1,
