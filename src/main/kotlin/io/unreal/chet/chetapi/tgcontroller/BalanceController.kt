@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component
 class BalanceController(private val userBalanceService: UserBalanceService) {
 
     companion object {
-        const val BALANCE_RETRIEVAL_SUCCESS = "You currently have %d credits!"
+        const val BALANCE_RETRIEVAL_SUCCESS = "You currently have %d credits! If you'd like more please contact @MadeEast"
         const val BALANCE_RETRIEVAL_FAILURE = "Could not retrieve your balance. are you registered?"
         const val USER_BALANCE_DOES_NOT_EXIST = "Oops! Are you registered?"
     }
