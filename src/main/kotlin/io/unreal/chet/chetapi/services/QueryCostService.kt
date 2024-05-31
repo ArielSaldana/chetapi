@@ -48,7 +48,7 @@ class QueryCostService(private val queryCostRepository: QueryCostRepository) {
                 queryId = 3,
                 queryName = "promotional-100-signup-credit",
                 queryDescription = "Offering users a one time sign up credit",
-                creditCost = 100
+                creditCost = 0
             ),
         )
 
